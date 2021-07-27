@@ -28,4 +28,7 @@ interface ConversationsDao {
 
     @Query("DELETE FROM conversations WHERE thread_id = :threadId")
     fun deleteThreadId(threadId: Long)
+
+    @Query("UPDATE conversations SET date = :date, snippet = :snippet WHERE thread_id = :threadId")
+    fun updateConversationDateSnippetByThreadId(threadId: Long, date: Int, snippet: String)
 }

@@ -9,6 +9,8 @@ import android.util.TypedValue
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Filter
+import android.widget.Filterable
 import android.widget.TextView
 import com.bumptech.glide.Glide
 import com.simplemobiletools.commons.adapters.MyRecyclerViewAdapter
@@ -24,14 +26,20 @@ import com.simplemobiletools.smsmessenger.R
 import com.simplemobiletools.smsmessenger.activities.SimpleActivity
 import com.simplemobiletools.smsmessenger.extensions.deleteConversation
 import com.simplemobiletools.smsmessenger.helpers.refreshMessages
+import com.simplemobiletools.smsmessenger.helpers.VIEW_FAVORITES
+import com.simplemobiletools.smsmessenger.helpers.VIEW_CONTACTS
+import com.simplemobiletools.smsmessenger.helpers.VIEW_RECENT
 import com.simplemobiletools.smsmessenger.models.Conversation
 import kotlinx.android.synthetic.main.item_conversation.view.*
 
 class ConversationsAdapter(
     activity: SimpleActivity, var conversations: ArrayList<Conversation>, recyclerView: MyRecyclerView, fastScroller: FastScroller,
     itemClick: (Any) -> Unit
-) : MyRecyclerViewAdapter(activity, recyclerView, fastScroller, itemClick) {
+) : MyRecyclerViewAdapter(activity, recyclerView, fastScroller, itemClick), Filterable {
     private var fontSize = activity.getTextSize()
+
+    // feature: tabs
+    private var filteredConversations : List<Conversation> = conversations
 
     init {
         setupDragListener(true)
@@ -63,13 +71,13 @@ class ConversationsAdapter(
         }
     }
 
-    override fun getSelectableItemCount() = conversations.size
+    override fun getSelectableItemCount() = filteredConversations.size
 
     override fun getIsItemSelectable(position: Int) = true
 
-    override fun getItemSelectionKey(position: Int) = conversations.getOrNull(position)?.hashCode()
+    override fun getItemSelectionKey(position: Int) = filteredConversations.getOrNull(position)?.hashCode()
 
-    override fun getItemKeyPosition(key: Int) = conversations.indexOfFirst { it.hashCode() == key }
+    override fun getItemKeyPosition(key: Int) = filteredConversations.indexOfFirst { it.hashCode() == key }
 
     override fun onActionModeCreated() {}
 
@@ -78,14 +86,39 @@ class ConversationsAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = createViewHolder(R.layout.item_conversation, parent)
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val conversation = conversations[position]
+        val conversation = filteredConversations[position]
         holder.bindView(conversation, true, true) { itemView, layoutPosition ->
             setupView(itemView, conversation)
         }
         bindViewHolder(holder)
     }
 
-    override fun getItemCount() = conversations.size
+    override fun getItemCount() = filteredConversations.size
+
+    // feature: tabs
+    override fun getFilter(): Filter {
+        return object : Filter() {
+            override fun performFiltering(constraint: CharSequence?): FilterResults {
+                var results = FilterResults()
+                when(constraint) {
+                    VIEW_FAVORITES -> results.values = conversations.filter {
+                        it.isFavorite
+                    }
+                    VIEW_CONTACTS -> results.values = conversations.filter {
+                        it.isContact
+                    }
+                    VIEW_RECENT -> results.values = conversations
+                    else -> results.values = conversations
+                }
+                return results
+            }
+
+            override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
+                filteredConversations = results?.values as List<Conversation>
+                notifyDataSetChanged()
+            }
+        }
+    }
 
     private fun askConfirmBlock() {
         val numbers = getSelectedItems().distinctBy { it.phoneNumber }.map { it.phoneNumber }

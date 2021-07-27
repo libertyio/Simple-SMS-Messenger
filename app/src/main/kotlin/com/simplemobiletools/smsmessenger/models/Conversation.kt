@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+// feature: tabs // add is_favorite and is_contact columns
 @Entity(tableName = "conversations", indices = [(Index(value = ["thread_id"], unique = true))])
 data class Conversation(
     @PrimaryKey @ColumnInfo(name = "thread_id") var threadId: Long,
@@ -14,5 +15,7 @@ data class Conversation(
     @ColumnInfo(name = "title") var title: String,
     @ColumnInfo(name = "photo_uri") var photoUri: String,
     @ColumnInfo(name = "is_group_conversation") var isGroupConversation: Boolean,
+    @ColumnInfo(name = "is_favorite") var isFavorite: Boolean,
+    @ColumnInfo(name = "is_contact") var isContact: Boolean,
     @ColumnInfo(name = "phone_number") var phoneNumber: String
 )
