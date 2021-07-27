@@ -1,31 +1,23 @@
-# Simple SMS Messenger
-<img alt="Logo" src="fastlane/metadata/android/en-US/images/icon.png" width="120" />
+# Liberty Messenger
 
-A great way to stay in touch with your relatives, by sending both SMS and MMS messages. The app properly handles group messaging too, just like blocking numbers from Android 7+.
+<img alt="Logo" src="app/src/liberty/res/mipmap-xhdpi/ic_launcher.png" width="96"/>
 
-It offers many date formats to choose from, to make you feel comfortable at using it. You can toggle between 12 and 24 hours time format too.
+**Send and receive SMS organized into favorites, contacts, and recents.**
 
-It has a really tiny app size compared to the competition, making it really fast to download.
+[Liberty Messenger](https://github.com/libertyio/Simple-SMS-Messenger) is an open source fork of [Simple SMS Messenger](https://github.com/SimpleMobileTools/Simple-SMS-Messenger), which was available with a [GPLv3 license](https://www.gnu.org/licenses/gpl-3.0.html) at the time of the
+fork.
 
-It comes with material design and dark theme by default, provides great user experience for easy usage. The lack of internet access gives you more privacy, security and stability than other apps.
+Liberty Messenger adds the following major features, not available in Simple SMS Messenger:
 
-Contains no ads or unnecessary permissions. It is fully opensource, provides customizable colors.
+* organize conversations into favorites, contacts, and recents
+* separate notification settings for favorites, contacts, and recents
 
-Check out the full suite of Simple Tools here:
-https://www.simplemobiletools.com
+Liberty Messenger removes or disables the following features:
 
-Facebook:
-https://www.facebook.com/simplemobiletools
+* annoying popups to rate the app, donate, etc.
+* ability to choose the color scheme for the app
+* link to purchase the "Simple Thank You" app
 
-Reddit:
-https://www.reddit.com/r/SimpleMobileTools
+Switch to the `liberty_main` branch to see the aforementioned changes.
 
-<a href='https://play.google.com/store/apps/details?id=com.simplemobiletools.smsmessenger'><img src='https://simplemobiletools.com/assets/images/google-play.png' alt='Get it on Google Play' height=45/></a>
-<a href='https://f-droid.org/packages/com.simplemobiletools.smsmessenger'><img src='https://simplemobiletools.com/assets/images/f-droid.png' alt='Get it on F-Droid' height='45' /></a>
-
-<div style="display:flex;">
-<img alt="App image" src="fastlane/metadata/android/en-US/images/phoneScreenshots/english/1.jpg" width="30%">
-<img alt="App image" src="fastlane/metadata/android/en-US/images/phoneScreenshots/english/2.jpg" width="30%">
-<img alt="App image" src="fastlane/metadata/android/en-US/images/phoneScreenshots/english/3.jpg" width="30%">
-</div>
-
+For more information, please visit [Liberty Messenger for Android](https://github.com/libertyio/liberty-messenger-android)
