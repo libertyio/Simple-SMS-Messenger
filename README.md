@@ -1,6 +1,6 @@
 # Liberty Messenger
 
-<img alt="Logo" src="app/src/liberty/res/mipmap-xhdpi/ic_launcher.png" width="96"/>
+<img alt="Logo" src="https://github.com/libertyio/liberty-messenger-android/raw/main/app_icon_96x96.png" width="96"/>
 
 **Send and receive SMS organized into favorites, contacts, and recents.**
 
