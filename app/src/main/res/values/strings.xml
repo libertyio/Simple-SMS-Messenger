@@ -23,6 +23,12 @@
     <string name="add_contact_or_number">Add Contact or Number…</string>
     <string name="suggestions">Suggestions</string>
 
+    <!-- feature: tabs // Notification channels -->
+    <string name="channel_received_sms_favorites">Favorites</string>
+    <string name="channel_received_sms_contacts">Contacts</string>
+    <string name="channel_received_sms_unknowns">Unknowns</string>
+    <string name="channel_replied_sms">Replies</string>
+
     <!-- Notifications -->
     <string name="channel_received_sms">Received SMS</string>
     <string name="new_message">New message</string>

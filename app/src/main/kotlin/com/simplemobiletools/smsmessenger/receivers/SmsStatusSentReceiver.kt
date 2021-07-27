@@ -20,11 +20,10 @@ import com.simplemobiletools.commons.extensions.getAdjustedPrimaryColor
 import com.simplemobiletools.commons.extensions.getMyContactsCursor
 import com.simplemobiletools.commons.helpers.SimpleContactsHelper
 import com.simplemobiletools.commons.helpers.ensureBackgroundThread
-import com.simplemobiletools.commons.helpers.isOreoPlus
 import com.simplemobiletools.smsmessenger.R
 import com.simplemobiletools.smsmessenger.activities.ThreadActivity
 import com.simplemobiletools.smsmessenger.extensions.*
-import com.simplemobiletools.smsmessenger.helpers.NOTIFICATION_CHANNEL
+import com.simplemobiletools.smsmessenger.helpers.NOTIFICATION_CHANNEL_REPLIES
 import com.simplemobiletools.smsmessenger.helpers.THREAD_ID
 import com.simplemobiletools.smsmessenger.helpers.refreshMessages
 
@@ -65,23 +64,6 @@ class SmsStatusSentReceiver : SentReceiver() {
     private fun showNotification(context: Context, recipientName: String, threadId: Long) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        if (isOreoPlus()) {
-            val audioAttributes = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .setLegacyStreamType(AudioManager.STREAM_NOTIFICATION)
-                .build()
-
-            val name = context.getString(R.string.message_not_sent_short)
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            NotificationChannel(NOTIFICATION_CHANNEL, name, importance).apply {
-                setBypassDnd(false)
-                enableLights(true)
-                setSound(soundUri, audioAttributes)
-                enableVibration(true)
-                notificationManager.createNotificationChannel(this)
-            }
-        }
 
         val intent = Intent(context, ThreadActivity::class.java).apply {
             putExtra(THREAD_ID, threadId)
@@ -91,7 +73,7 @@ class SmsStatusSentReceiver : SentReceiver() {
         val summaryText = String.format(context.getString(R.string.message_sending_error), recipientName)
 
         val largeIcon = SimpleContactsHelper(context).getContactLetterIcon(recipientName)
-        val builder = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL)
+        val builder = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_REPLIES)
             .setContentTitle(context.getString(R.string.message_not_sent_short))
             .setContentText(summaryText)
             .setColor(context.getAdjustedPrimaryColor())
@@ -104,7 +86,7 @@ class SmsStatusSentReceiver : SentReceiver() {
             .setCategory(Notification.CATEGORY_MESSAGE)
             .setAutoCancel(true)
             .setSound(soundUri, AudioManager.STREAM_NOTIFICATION)
-            .setChannelId(NOTIFICATION_CHANNEL)
+            .setChannelId(NOTIFICATION_CHANNEL_REPLIES)
 
         notificationManager.notify(threadId.hashCode(), builder.build())
     }

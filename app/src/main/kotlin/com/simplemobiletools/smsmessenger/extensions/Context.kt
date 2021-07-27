@@ -239,7 +239,10 @@ fun Context.getConversations(threadId: Long? = null, privateContacts: ArrayList<
         val photoUri = if (phoneNumbers.size == 1) simpleContactHelper.getPhotoUriFromPhoneNumber(phoneNumbers.first()) else ""
         val isGroupConversation = phoneNumbers.size > 1
         val read = cursor.getIntValue(Threads.READ) == 1
-        val conversation = Conversation(id, snippet, date.toInt(), read, title, photoUri, isGroupConversation, phoneNumbers.first())
+        // feature: tabs
+        val isFavorite = getThreadIsFavorite(phoneNumbers)
+        val isContact = getThreadIsContact(phoneNumbers)
+        val conversation = Conversation(id, snippet, date.toInt(), read, title, photoUri, isGroupConversation, isFavorite, isContact, phoneNumbers.first())
         conversations.add(conversation)
     }
 
@@ -404,6 +407,79 @@ fun Context.getThreadContactNames(phoneNumbers: List<String>, privateContacts: A
     return names
 }
 
+// feature: tabs
+// return true if any of the phone numbers are starred contacts
+fun Context.getThreadIsFavorite(phoneNumbers : List<String>) : Boolean {
+    val helper = SimpleContactsHelperExtension(this)
+    var isFavorite = false
+    phoneNumbers.forEach {
+        isFavorite = isFavorite || helper.getStarredFromPhoneNumber(it)
+    }
+    return isFavorite
+}
+
+// feature: tabs
+// return true if any of the phone numbers are contacts
+fun Context.getThreadIsContact(phoneNumbers : List<String>) : Boolean {
+    val helper = SimpleContactsHelperExtension(this)
+    var isContact = false
+    phoneNumbers.forEach {
+        isContact = isContact || helper.getContactFromPhoneNumber(it) != null
+    }
+    return isContact
+}
+
+// feature: tabs
+class SimpleContactsHelperExtension(val context: Context) {
+    fun getStarredFromPhoneNumber(number: String): Boolean {
+        if (!context.hasPermission(PERMISSION_READ_CONTACTS)) {
+            return false
+        }
+
+        val uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
+        val projection = arrayOf(
+            PhoneLookup.STARRED
+        )
+
+        try {
+            val cursor = context.contentResolver.query(uri, projection, null, null, null)
+            cursor.use {
+                if (cursor?.moveToFirst() == true) {
+                    return cursor.getIntValue(PhoneLookup.STARRED) == 1
+                }
+            }
+        } catch (e: Exception) {
+            context.showErrorToast(e)
+        }
+
+        return false
+    }
+
+    fun getContactFromPhoneNumber(number: String): String? {
+        if (!context.hasPermission(PERMISSION_READ_CONTACTS)) {
+            return null
+        }
+
+        val uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
+        val projection = arrayOf(
+            PhoneLookup.CONTACT_ID
+        )
+
+        try {
+            val cursor = context.contentResolver.query(uri, projection, null, null, null)
+            cursor.use {
+                if (cursor?.moveToFirst() == true) {
+                    return cursor.getStringValue(PhoneLookup.CONTACT_ID)
+                }
+            }
+        } catch (e: Exception) {
+            context.showErrorToast(e)
+        }
+
+        return null
+    }
+}
+
 fun Context.getPhoneNumberFromAddressId(canonicalAddressId: Int): String {
     val uri = Uri.withAppendedPath(MmsSms.CONTENT_URI, "canonical-addresses")
     val projection = arrayOf(
@@ -467,14 +543,17 @@ fun Context.getSuggestedContacts(privateContacts: ArrayList<SimpleContact>): Arr
     return contacts
 }
 
+// feature: tabs // return NamePhoto result with isContact and isFavorite flags
 fun Context.getNameAndPhotoFromPhoneNumber(number: String): NamePhoto {
     if (!hasPermission(PERMISSION_READ_CONTACTS)) {
-        return NamePhoto(number, null)
+        return NamePhoto(number, null, null, null)
     }
 
     val uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
     val projection = arrayOf(
         PhoneLookup.DISPLAY_NAME,
+        PhoneLookup.CONTACT_ID,
+        PhoneLookup.STARRED,
         PhoneLookup.PHOTO_URI
     )
 
@@ -484,13 +563,15 @@ fun Context.getNameAndPhotoFromPhoneNumber(number: String): NamePhoto {
             if (cursor?.moveToFirst() == true) {
                 val name = cursor.getStringValue(PhoneLookup.DISPLAY_NAME)
                 val photoUri = cursor.getStringValue(PhoneLookup.PHOTO_URI)
-                return NamePhoto(name, photoUri)
+                val isContact = cursor.getStringValue(PhoneLookup.CONTACT_ID) != null
+                val isFavorite = cursor.getIntValue(PhoneLookup.STARRED) == 1
+                return NamePhoto(name, photoUri, isContact, isFavorite)
             }
         }
     } catch (e: Exception) {
     }
 
-    return NamePhoto(number, null)
+    return NamePhoto(number, null, false, false)
 }
 
 fun Context.insertNewSMS(address: String, subject: String, body: String, date: Long, read: Int, threadId: Long, type: Int, subscriptionId: Int): Long {
@@ -638,10 +719,15 @@ fun Context.getThreadId(addresses: Set<String>): Long {
 fun Context.showReceivedMessageNotification(address: String, body: String, threadId: Long, bitmap: Bitmap?) {
     val privateCursor = getMyContactsCursor(false, true)?.loadInBackground()
     ensureBackgroundThread {
-        val senderName = getNameFromAddress(address, privateCursor)
+        // feature: tabs
+        // val senderName = getNameFromAddress(address, privateCursor)
+        val contactInfo = getNameAndPhotoFromPhoneNumber(address)
+        val isContact = contactInfo?.isContact == true
+        val isFavorite = contactInfo?.isFavorite == true
+        val senderName = if (contactInfo?.name == address) { getNameFromPrivateContacts(address, privateCursor) } else { contactInfo?.name };
 
         Handler(Looper.getMainLooper()).post {
-            showMessageNotification(address, body, threadId, bitmap, senderName)
+            showMessageNotification(address, body, threadId, bitmap, senderName, isContact, isFavorite)
         }
     }
 }
@@ -649,33 +735,31 @@ fun Context.showReceivedMessageNotification(address: String, body: String, threa
 fun Context.getNameFromAddress(address: String, privateCursor: Cursor?): String {
     var sender = getNameAndPhotoFromPhoneNumber(address).name
     if (address == sender) {
-        val privateContacts = MyContactsContentProvider.getSimpleContacts(this, privateCursor)
-        sender = privateContacts.firstOrNull { it.doesContainPhoneNumber(address) }?.name ?: address
+        sender = getNameFromPrivateContacts(address, privateCursor);
     }
     return sender
 }
 
-@SuppressLint("NewApi")
-fun Context.showMessageNotification(address: String, body: String, threadId: Long, bitmap: Bitmap?, sender: String) {
-    val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-    if (isOreoPlus()) {
-        val audioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .setLegacyStreamType(AudioManager.STREAM_NOTIFICATION)
-            .build()
+fun Context.getNameFromPrivateContacts(address: String, privateCursor: Cursor?): String {
+    val privateContacts = MyContactsContentProvider.getSimpleContacts(this, privateCursor)
+    return privateContacts.firstOrNull { it.doesContainPhoneNumber(address) }?.name ?: address
+}
 
-        val name = getString(R.string.channel_received_sms)
-        val importance = NotificationManager.IMPORTANCE_HIGH
-        NotificationChannel(NOTIFICATION_CHANNEL, name, importance).apply {
-            setBypassDnd(false)
-            enableLights(true)
-            setSound(soundUri, audioAttributes)
-            enableVibration(true)
-            notificationManager.createNotificationChannel(this)
-        }
+// feature: tabs // add isContact and isFavorite flags
+@SuppressLint("NewApi")
+fun Context.showMessageNotification(address: String, body: String, threadId: Long, bitmap: Bitmap?, sender: String,  isContact: Boolean, isFavorite: Boolean) {
+    val notificationChannelId : String
+    if (isFavorite) {
+        notificationChannelId = NOTIFICATION_CHANNEL_FAVORITES
     }
+    else if (isContact) {
+        notificationChannelId = NOTIFICATION_CHANNEL_CONTACTS
+    }
+    else {
+        notificationChannelId = NOTIFICATION_CHANNEL_UNKNOWNS
+    }
+
+    val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     val intent = Intent(this, ThreadActivity::class.java).apply {
         putExtra(THREAD_ID, threadId)
@@ -700,6 +784,7 @@ fun Context.showMessageNotification(address: String, body: String, threadId: Lon
         val replyIntent = Intent(this, DirectReplyReceiver::class.java).apply {
             putExtra(THREAD_ID, threadId)
             putExtra(THREAD_NUMBER, address)
+            putExtra(NOTIFICATION_CHANNEL_ID, NOTIFICATION_CHANNEL_REPLIES)
         }
 
         val replyPendingIntent = PendingIntent.getBroadcast(applicationContext, threadId.hashCode(), replyIntent, PendingIntent.FLAG_UPDATE_CURRENT)
@@ -709,7 +794,7 @@ fun Context.showMessageNotification(address: String, body: String, threadId: Lon
     }
 
     val largeIcon = bitmap ?: SimpleContactsHelper(this).getContactLetterIcon(sender)
-    val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL)
+    val builder = NotificationCompat.Builder(this, notificationChannelId)
         .setContentTitle(sender)
         .setContentText(body)
         .setColor(getAdjustedPrimaryColor())
@@ -721,12 +806,38 @@ fun Context.showMessageNotification(address: String, body: String, threadId: Lon
         .setDefaults(Notification.DEFAULT_LIGHTS)
         .setCategory(Notification.CATEGORY_MESSAGE)
         .setAutoCancel(true)
-        .setSound(soundUri, AudioManager.STREAM_NOTIFICATION)
+
+    if (!isOreoPlus()) {
+        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        builder.setSound(soundUri, AudioManager.STREAM_NOTIFICATION)
+    }
+
     if (replyAction != null) {
         builder.addAction(replyAction)
     }
     builder.addAction(R.drawable.ic_check_vector, getString(R.string.mark_as_read), markAsReadPendingIntent)
-        .setChannelId(NOTIFICATION_CHANNEL)
+        .setChannelId(notificationChannelId)
 
     notificationManager.notify(threadId.hashCode(), builder.build())
+}
+
+@SuppressLint("NewApi")
+fun Context.createNotificationChannel(id: String, name: String) {
+    if (isOreoPlus()) {
+        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .setLegacyStreamType(AudioManager.STREAM_NOTIFICATION)
+            .build()
+
+        val importance = NotificationManager.IMPORTANCE_HIGH
+        NotificationChannel(id, name, importance).apply {
+            setBypassDnd(false)
+            enableLights(true)
+            setSound(soundUri, audioAttributes)
+            enableVibration(true)
+            notificationManager.createNotificationChannel(this)
+        }
+    }
 }

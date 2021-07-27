@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.provider.Telephony
 import android.view.Menu
 import android.view.MenuItem
+import com.google.android.material.tabs.TabLayout
 import com.simplemobiletools.commons.extensions.*
 import com.simplemobiletools.commons.helpers.*
 import com.simplemobiletools.commons.models.FAQItem
@@ -19,8 +20,7 @@ import com.simplemobiletools.smsmessenger.BuildConfig
 import com.simplemobiletools.smsmessenger.R
 import com.simplemobiletools.smsmessenger.adapters.ConversationsAdapter
 import com.simplemobiletools.smsmessenger.extensions.*
-import com.simplemobiletools.smsmessenger.helpers.THREAD_ID
-import com.simplemobiletools.smsmessenger.helpers.THREAD_TITLE
+import com.simplemobiletools.smsmessenger.helpers.*
 import com.simplemobiletools.smsmessenger.models.Conversation
 import com.simplemobiletools.smsmessenger.models.Events
 import io.liberty.messenger.activities.AboutLibertyMessengerActivity
@@ -45,6 +45,26 @@ class MainActivity : SimpleActivity() {
 
         if (checkAppSideloading()) {
             return
+        }
+
+        // feature: tabs
+        if (isOreoPlus()) {
+            createNotificationChannel(
+                NOTIFICATION_CHANNEL_FAVORITES,
+                getString(R.string.channel_received_sms_favorites)
+            )
+            createNotificationChannel(
+                NOTIFICATION_CHANNEL_CONTACTS,
+                getString(R.string.channel_received_sms_contacts)
+            )
+            createNotificationChannel(
+                NOTIFICATION_CHANNEL_UNKNOWNS,
+                getString(R.string.channel_received_sms_unknowns)
+            )
+            createNotificationChannel(
+                NOTIFICATION_CHANNEL_REPLIES,
+                getString(R.string.channel_replied_sms)
+            )
         }
 
         if (isQPlus()) {
@@ -166,6 +186,32 @@ class MainActivity : SimpleActivity() {
         conversations_fab.setOnClickListener {
             launchNewConversation()
         }
+
+        // feature: tabs
+        conversations_tablayout.addOnTabSelectedListener( object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                when(tab?.position) {
+                    0 -> (conversations_list.adapter as? ConversationsAdapter)?.filter?.filter(VIEW_FAVORITES)
+                    1 -> (conversations_list.adapter as? ConversationsAdapter)?.filter?.filter(VIEW_CONTACTS)
+                    2 -> (conversations_list.adapter as? ConversationsAdapter)?.filter?.filter(VIEW_RECENT)
+                    else -> (conversations_list.adapter as? ConversationsAdapter)?.filter?.filter(VIEW_RECENT)
+                }
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) {
+            }
+
+            override fun onTabReselected(tab: TabLayout.Tab?) {
+                when(tab?.position) {
+                    0 -> (conversations_list.adapter as? ConversationsAdapter)?.filter?.filter(VIEW_FAVORITES)
+                    1 -> (conversations_list.adapter as? ConversationsAdapter)?.filter?.filter(VIEW_CONTACTS)
+                    2 -> (conversations_list.adapter as? ConversationsAdapter)?.filter?.filter(VIEW_RECENT)
+                    else -> (conversations_list.adapter as? ConversationsAdapter)?.filter?.filter(VIEW_RECENT)
+                }
+            }
+
+        } )
+
     }
 
     private fun getCachedConversations() {
@@ -192,6 +238,17 @@ class MainActivity : SimpleActivity() {
 
             runOnUiThread {
                 setupConversations(conversations)
+            }
+
+            // feature: tabs
+            // update cached conversations when favorites or contacts change
+            conversations.forEach { clonedConversation ->
+                val cachedConversationToUpdate = cachedConversations.firstOrNull { it.threadId == clonedConversation.threadId && (it.isFavorite != clonedConversation.isFavorite || it.isContact != clonedConversation.isContact) }
+                if (cachedConversationToUpdate != null) {
+                    conversationsDB.insertOrUpdate(clonedConversation)
+                    cachedConversations.remove(cachedConversationToUpdate)
+                    cachedConversations.add(clonedConversation)
+                }
             }
 
             conversations.forEach { clonedConversation ->
@@ -259,6 +316,10 @@ class MainActivity : SimpleActivity() {
             } catch (ignored: Exception) {
             }
         }
+
+        // feature: tabs
+        // initial filter of selected tab is required here, so user doesn't have to switch to another tab and come back
+        conversations_tablayout.getTabAt(conversations_tablayout.selectedTabPosition)?.select()
     }
 
     private fun launchNewConversation() {

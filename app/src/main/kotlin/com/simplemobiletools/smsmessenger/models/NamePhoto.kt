@@ -1,3 +1,4 @@
 package com.simplemobiletools.smsmessenger.models
 
-data class NamePhoto(val name: String, val photoUri: String?)
+// feature: tabs // add isContact and isFavorite
+data class NamePhoto(val name: String, val photoUri: String?, val isContact: Boolean?, val isFavorite: Boolean?)

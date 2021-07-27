@@ -16,6 +16,7 @@
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
             android:layout_marginTop="@dimen/bigger_margin"
+            android:layout_below="@+id/conversations_tablayout"
             android:alpha="0.8"
             android:gravity="center"
             android:paddingLeft="@dimen/activity_margin"
@@ -42,6 +43,7 @@
             android:id="@+id/conversations_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_below="@+id/conversations_tablayout"
             android:clipToPadding="false"
             android:layoutAnimation="@anim/layout_animation"
             android:overScrollMode="ifContentScrolls"
@@ -60,6 +62,35 @@
             <include layout="@layout/fastscroller_handle_vertical" />
 
         </com.simplemobiletools.commons.views.FastScroller>
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/conversations_tablayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center"
+            android:layout_alignParentTop="true"
+            app:tabIndicatorGravity="bottom"
+            >
+            <com.google.android.material.tabs.TabItem
+                android:id="@+id/conversations_tab_favorites"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:icon="@drawable/ic_star_on_vector"
+                />
+            <com.google.android.material.tabs.TabItem
+                android:id="@+id/conversations_tab_contacts"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:icon="@drawable/ic_person_vector"
+                />
+            <com.google.android.material.tabs.TabItem
+                android:id="@+id/conversations_tab_recent"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:icon="@drawable/ic_clock_vector"
+                />
+        </com.google.android.material.tabs.TabLayout>
+
     </RelativeLayout>
 
     <com.simplemobiletools.commons.views.MyFloatingActionButton

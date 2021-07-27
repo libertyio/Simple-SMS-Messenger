@@ -63,7 +63,10 @@ abstract class MessagesDatabase : RoomDatabase() {
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.apply {
-                    execSQL("CREATE TABLE conversations_new (`thread_id` INTEGER NOT NULL PRIMARY KEY, `snippet` TEXT NOT NULL, `date` INTEGER NOT NULL, `read` INTEGER NOT NULL, `title` TEXT NOT NULL, `photo_uri` TEXT NOT NULL, `is_group_conversation` INTEGER NOT NULL, `phone_number` TEXT NOT NULL)")
+                    // feature: tabs
+                    // the is_favorite and is_contact columns should be moved to a separate migration if this is ever merged
+                    // upstream, but placing them here is convenient for now to avoid merge conflicts with future migrations
+                    execSQL("CREATE TABLE conversations_new (`thread_id` INTEGER NOT NULL PRIMARY KEY, `snippet` TEXT NOT NULL, `date` INTEGER NOT NULL, `read` INTEGER NOT NULL, `title` TEXT NOT NULL, `photo_uri` TEXT NOT NULL, `is_group_conversation` INTEGER NOT NULL, `phone_number` TEXT NOT NULL, is_favorite INTEGER DEFAULT 0 NOT NULL, is_contact INTEGER DEFAULT 0 NOT NULL)")
 
                     execSQL("INSERT OR IGNORE INTO conversations_new (thread_id, snippet, date, read, title, photo_uri, is_group_conversation, phone_number) " +
                             "SELECT thread_id, snippet, date, read, title, photo_uri, is_group_conversation, phone_number FROM conversations")
