@@ -23,6 +23,7 @@ import com.simplemobiletools.smsmessenger.helpers.THREAD_ID
 import com.simplemobiletools.smsmessenger.helpers.THREAD_TITLE
 import com.simplemobiletools.smsmessenger.models.Conversation
 import com.simplemobiletools.smsmessenger.models.Events
+import io.liberty.messenger.activities.AboutLibertyMessengerActivity
 import kotlinx.android.synthetic.main.activity_main.*
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -81,7 +82,7 @@ class MainActivity : SimpleActivity() {
         }
 
         updateTextColors(main_coordinator)
-        no_conversations_placeholder_2.setTextColor(getAdjustedPrimaryColor())
+        no_conversations_placeholder_2.setTextColor(getLinkTextColor())
         no_conversations_placeholder_2.underlineText()
         conversations_fastscroller.updatePrimaryColor()
         conversations_fastscroller.updateBubbleColors()
@@ -315,11 +316,25 @@ class MainActivity : SimpleActivity() {
             FAQItem(R.string.faq_9_title_commons, R.string.faq_9_text_commons)
         )
 
-        startAboutActivity(R.string.app_name, licenses, BuildConfig.VERSION_NAME, faqItems, true)
+        startAboutLibertyMessengerActivity(R.string.app_name, licenses, BuildConfig.VERSION_NAME, faqItems, true)
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun refreshMessages(event: Events.RefreshMessages) {
         initMessenger()
     }
+
+    private fun startAboutLibertyMessengerActivity(appNameId: Int, licenseMask: Int, versionName: String, faqItems: ArrayList<FAQItem>, showFAQBeforeMail: Boolean) {
+        Intent(applicationContext, AboutLibertyMessengerActivity::class.java).apply {
+            putExtra(APP_ICON_IDS, getAppIconIDs())
+            putExtra(APP_LAUNCHER_NAME, getAppLauncherName())
+            putExtra(APP_NAME, getString(appNameId))
+            putExtra(APP_LICENSES, licenseMask)
+            putExtra(APP_VERSION_NAME, versionName)
+            putExtra(APP_FAQ, faqItems)
+            putExtra(SHOW_FAQ_BEFORE_MAIL, showFAQBeforeMail)
+            startActivity(this)
+        }
+    }
+
 }
