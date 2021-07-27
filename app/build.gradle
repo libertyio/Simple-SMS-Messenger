@@ -50,7 +50,7 @@ android {
         liberty {
             dimension "brand"
             applicationId "io.liberty.messenger"
-            versionCode 32
+            versionCode 33
             versionName "1.0.0"
             setProperty("archivesBaseName", "liberty-messenger")
         }
