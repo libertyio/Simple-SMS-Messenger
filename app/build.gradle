@@ -50,10 +50,10 @@ android {
         liberty {
             dimension "brand"
             applicationId "io.liberty.messenger"
-            versionCode 1
+            versionCode 32
             versionName "1.0.0"
             setProperty("archivesBaseName", "liberty-messenger")
-        } 
+        }
     }
 
     sourceSets {
@@ -64,6 +64,11 @@ android {
     lintOptions {
         checkReleaseBuilds false
         abortOnError false
+    }
+    buildToolsVersion '30.0.3'
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
