@@ -45,8 +45,20 @@ android {
         }
     }
 
+    flavorDimensions "brand"
+    productFlavors {
+        liberty {
+            dimension "brand"
+            applicationId "io.liberty.messenger"
+            versionCode 1
+            versionName "1.0.0"
+            setProperty("archivesBaseName", "liberty-messenger")
+        } 
+    }
+
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
+        liberty.java.srcDir 'src/liberty/kotlin'
     }
 
     lintOptions {
@@ -55,13 +67,22 @@ android {
     }
 }
 
+configurations.all {
+    // Check 'changing' modules for updates every build
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
 dependencies {
-    implementation 'com.github.SimpleMobileTools:Simple-Commons:25daba7267'
+    implementation ('io.liberty.smtf:simple-commons:1.0.1') { changing = true }
+    implementation 'com.google.android.material:material:1.2.1'
+    implementation 'com.google.code.gson:gson:2.8.6'
+    implementation 'com.github.bumptech.glide:glide:4.9.0'
     implementation 'org.greenrobot:eventbus:3.2.0'
     implementation 'com.klinkerapps:android-smsmms:5.2.6'
     implementation 'com.github.tibbi:IndicatorFastScroll:c3de1d040a'
     implementation "me.leolin:ShortcutBadger:1.1.22"
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0'
 
     kapt "androidx.room:room-compiler:2.3.0"
     implementation "androidx.room:room-runtime:2.3.0"
